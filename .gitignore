@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Generated Android build files
+/android/build/
+
+# Local Firebase configuration
+/android/app/google-services.json
+/android/build/
+/android/app/google-services.json
+
+# Local Firestore rules backups
+firestore.rules.backup
+firestore.rules.backup.safe
+firestore.rules.new-backup

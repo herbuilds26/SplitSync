@@ -30,12 +30,39 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  firebase_core: any
+  firebase_auth: any
+  cloud_firestore: any
+  firebase_storage: any
+  firebase_messaging: any
+  google_sign_in: ^6.2.2
+  provider: ^6.1.2
+  fl_chart: ^0.70.2
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.4
+  image_picker: ^1.1.2
+  google_mlkit_text_recognition: ^0.14.0
+  speech_to_text: ^7.0.0
+  url_launcher: ^6.3.1
+  pdf: ^3.11.1
+  printing: ^5.13.3
+  excel: any
+  csv: ^6.0.0
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
+  intl: ^0.20.2
+  shared_preferences: ^2.5.3
+  flutter_local_notifications: ^22.3.1
+  android_intent_plus: ^6.1.0
 
 dev_dependencies:
+  flutter_native_splash: ^2.4.4
   flutter_test:
     sdk: flutter
 
@@ -51,11 +78,10 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -87,3 +113,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_native_splash:
+  color: "#7B2948"
+  image: assets/images/splash.png
+
+  android_12:
+    color: "#7B2948"
+    image: assets/images/wallet_icon.png

@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
-import '../models/expense_models.dart';
-import '../services/app_state.dart';
-import '../services/expense_service.dart';
+import 'package:provider/provider.dart';
+import '../config/app_colors.dart';
+import '../l10n/app_strings.dart';
+import '../providers/auth_provider.dart';
+import '../screens/analytics/insights_screen.dart';
+import '../screens/expenses/expenses_list_screen.dart';
+import '../screens/groups/groups_screen.dart';
+import '../screens/home/home_screen.dart';
+import '../screens/profile/profile_screen.dart';
+
+import '../services/notification_service.dart';
+import 'lively_animations.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -10,222 +19,210 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
-  int _index = 0;
-  final _members = ['alex', 'maria', 'sam'];
-  final _expenses = <ExpenseModel>[
-    ExpenseModel(
-      id: 'e1',
-      groupId: 'g1',
-      title: 'Groceries',
-      amount: 180.0,
-      category: 'Food',
-      paidBy: 'alex',
-      splits: const [
-        ExpenseSplit(userId: 'alex', amount: 60, percentage: 33.3),
-        ExpenseSplit(userId: 'maria', amount: 60, percentage: 33.3),
-        ExpenseSplit(userId: 'sam', amount: 60, percentage: 33.3),
-      ],
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      note: 'Weekend groceries',
-      receiptPath: null,
-      splitMethod: 'Equal',
-      isSettled: false,
-    ),
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
+  int _selectedIndex = 0;
+
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    GroupsScreen(),
+    ExpensesListScreen(),
+    InsightsScreen(),
+    ProfileScreen(),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AuthProvider>().validateCurrentSession();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Re-verify session immediately when user returns to app
+      context.read<AuthProvider>().validateCurrentSession();
+    } else if (state == AppLifecycleState.paused) {
+      NotificationService.showEngagementTipNotification();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final balances = ExpenseService.calculateBalances(_expenses, _members);
-    final settlements = ExpenseService.simplifyDebts(balances, 'g1');
+    final t = AppStrings.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final navBgColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
 
     return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'SplitSync',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Premium group expenses, instantly',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Stack(
-                          children: [
-                            const CircleAvatar(
-                              radius: 24,
-                              child: Icon(Icons.account_circle_rounded),
-                            ),
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: IconButton.filledTonal(
-                                onPressed: AppState.instance.toggleTheme,
-                                icon: const Icon(Icons.dark_mode_rounded),
-                                iconSize: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.wallet,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text('Net balance'),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '₹ 120.00',
-                              style: Theme.of(context).textTheme.headlineLarge
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'You are owed by 2 people',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'AI insights',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.auto_awesome_rounded),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'You tend to overspend on dining out on weekends. A weekly budget reminder is recommended.',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Live balances',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...balances.map(
-                      (entry) => ListTile(
-                        leading: CircleAvatar(
-                          child: Text(
-                            entry.userId.substring(0, 1).toUpperCase(),
-                          ),
-                        ),
-                        title: Text(entry.userId.toUpperCase()),
-                        trailing: Text(
-                          entry.amount >= 0
-                              ? '+₹${entry.amount.toStringAsFixed(2)}'
-                              : '-₹${(-entry.amount).toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: entry.amount >= 0
-                                ? Colors.green
-                                : Colors.red,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Suggested settlements',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...settlements.map(
-                      (s) => ListTile(
-                        title: Text('${s.fromUserId} → ${s.toUserId}'),
-                        subtitle: Text('₹${s.amount.toStringAsFixed(2)}'),
-                        trailing: const Icon(Icons.swap_horiz_rounded),
-                      ),
-                    ),
-                  ],
+      backgroundColor: backgroundColor,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: navBgColor,
+          border: Border(
+            top: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              width: 1,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(10),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Expanded(
+                  child: _navItem(
+                    icon: Icons.home_outlined,
+                    selectedIcon: Icons.home_rounded,
+                    label: t.t('home'),
+                    index: 0,
+                  ),
                 ),
+                Expanded(
+                  child: _navItem(
+                    icon: Icons.groups_outlined,
+                    selectedIcon: Icons.groups_rounded,
+                    label: t.t('groups'),
+                    index: 1,
+                  ),
+                ),
+                Expanded(
+                  child: _navItem(
+                    icon: Icons.receipt_long_outlined,
+                    selectedIcon: Icons.receipt_long_rounded,
+                    label: t.t('expenses'),
+                    index: 2,
+                  ),
+                ),
+                Expanded(
+                  child: _navItem(
+                    icon: Icons.insights_outlined,
+                    selectedIcon: Icons.insights_rounded,
+                    label: t.t('insights'),
+                    index: 3,
+                  ),
+                ),
+                Expanded(
+                  child: _navItem(
+                    icon: Icons.person_outline_rounded,
+                    selectedIcon: Icons.person_rounded,
+                    label: t.t('profile'),
+                    index: 4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem({
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+    required int index,
+  }) {
+    final isSelected = _selectedIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return BouncingTap(
+      scaleLower: 0.90,
+      onTap: () {
+        if (_selectedIndex != index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 8 : 4,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? AppColors.darkCardSurface : AppColors.softBerryPink.withAlpha(160))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.berryRose.withAlpha(40),
+                  width: 1,
+                )
+              : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.berryRose.withAlpha(isDark ? 25 : 15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              scale: isSelected ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutBack,
+              child: Icon(
+                isSelected ? selectedIcon : icon,
+                color: isSelected
+                    ? AppColors.berryRose
+                    : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                size: 22,
+              ),
+            ),
+            const SizedBox(height: 3),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? (isDark ? Colors.white : AppColors.deepBerry)
+                    : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Home'),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_rounded),
-            label: 'Expenses',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_rounded),
-            label: 'Insights',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New expense'),
       ),
     );
   }
